@@ -20,7 +20,7 @@ export class Api extends Construct {
             runtime: Runtime.PROVIDED_AL2,
             architecture: Architecture.ARM_64,
             handler: 'not.required',
-            code: Code.fromAsset('functions/auth/target/lambda/auth/bootstrap.zip'),
+            code: Code.fromAsset('functions/target/lambda/auth/bootstrap.zip'),
             logRetention: RetentionDays.ONE_WEEK,
             environment: {
                 'RUST_BACKTRACE': '1',
