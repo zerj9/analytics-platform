@@ -13,7 +13,7 @@ export class Api extends Construct {
     constructor(scope: Construct, id: string, props: ApiProps) {
         super(scope, id)
 
-        const api = new HttpApi(this, 'HttpApi')
+        const api = new HttpApi(this, 'AnalyticsPlatformApi')
 
         const authFunction = new Function(this, 'AuthFunction', {
             description: 'Auth endpoint for use by API Gateway',
