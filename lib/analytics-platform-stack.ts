@@ -1,11 +1,14 @@
 import { Stack, StackProps } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
+import { Api } from './api';
 import { Data } from './data';
 
 export class AnalyticsPlatformStack extends Stack {
   constructor(scope: Construct, id: string, props?: StackProps) {
     super(scope, id, props);
 
-    new Data(this, 'Data')
+    const data = new Data(this, 'Data')
+    new Api(this, 'Api', { table: data.table })
+
   }
 }
