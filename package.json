@@ -5,9 +5,10 @@
     "analytics-platform": "bin/analytics-platform.js"
   },
   "scripts": {
+    "build-functions": "cd functions && cargo lambda build --arm64 --output-format zip",
     "build": "tsc",
     "watch": "tsc -w",
-    "test": "jest",
+    "test": "npm run build-functions && jest",
     "cdk": "cdk"
   },
   "devDependencies": {
