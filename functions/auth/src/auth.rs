@@ -1,5 +1,5 @@
 use aws_sdk_dynamodb;
-use lambda_http::{Body, IntoResponse, Request, RequestExt, Response};
+use lambda_http::{Body, IntoResponse, Response};
 use serde::{Deserialize, Serialize};
 use std::env;
 
@@ -53,47 +53,44 @@ impl User {
     }
 }
 
-pub async fn login(dynamodb: &aws_sdk_dynamodb::Client, event: Request) -> Response<Body> {
-    match event.query_string_parameters().first("email") {
-        None => missing_parameter_response("email"),
-        Some(email_query_param) => {
-            let user = User::from_email(dynamodb, email_query_param).await;
-            match user {
-                None => Response::builder()
-                    .status(400)
-                    .body("user not found".into())
-                    .expect(""),
-                Some(user) => {
-                    println!("{:?}", user.email);
-                    format!("found user").into_response()
-                }
-            }
+pub async fn login(dynamodb: &aws_sdk_dynamodb::Client, email: &str) -> Response<Body> {
+    let user = User::from_email(dynamodb, &email).await;
+    match user {
+        None => Response::builder()
+            .status(400)
+            .body("user not found".into())
+            .expect(""),
+        Some(user) => {
+            println!("{:?}", user.email);
+            // TODO: Create AUTH_SESSION in db
+            // TODO: Send email with code
+            format!("found user").into_response()
         }
     }
 }
 
-pub async fn authenticate(dynamodb: &aws_sdk_dynamodb::Client, event: Request) -> Response<Body> {
-    match event.query_string_parameters().first("email") {
-        None => missing_parameter_response("email"),
-        Some(email_query_param) => {
-            let user = User::from_email(dynamodb, email_query_param).await;
-            match user {
-                None => Response::builder()
-                    .status(400)
-                    .body("user not found".into())
-                    .expect(""),
-                Some(user) => {
-                    println!("{:?}", user.email);
-                    format!("found user").into_response()
-                }
-            }
+pub async fn authenticate(
+    dynamodb: &aws_sdk_dynamodb::Client,
+    email: &str,
+    auth_session_id: &str,
+    code: &str,
+) -> Response<Body> {
+    let user = User::from_email(dynamodb, email).await;
+    match user {
+        None => Response::builder()
+            .status(400)
+            .body("user not found".into())
+            .expect(""),
+        Some(user) => {
+            // Get AUTH_SESSION from db
+            // Validate code from request
+            // Create SESSION in db and delete AUTH_SESSION
+            println!("{:?}", user.email);
+            format!(
+                "Authenticate request for {} with auth session {} and code {}",
+                email, auth_session_id, code
+            )
+            .into_response()
         }
     }
-}
-
-fn missing_parameter_response(parameter: &str) -> Response<Body> {
-    Response::builder()
-        .status(400)
-        .body(format!("{} parameter missing", parameter).into())
-        .expect("failed to render response")
 }
