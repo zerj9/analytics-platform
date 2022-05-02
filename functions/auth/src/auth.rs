@@ -29,9 +29,7 @@ impl User {
 
         match resp.count {
             1 => {
-                let item = &resp
-                    .items
-                    .expect("User item could not be accessed in response")[0];
+                let item = &resp.items.expect("User item could not be accessed in response")[0];
                 Some(User {
                     id: item
                         .get("PK")
@@ -58,27 +56,16 @@ impl User {
     async fn create_auth_session(&self, dynamodb: &aws_sdk_dynamodb::Client) -> Result<String, ()> {
         println!("Creating auth session for {}", self.email);
         let session_id = Uuid::new_v4();
-        let code: String = (0..8)
-            .map(|_| thread_rng().sample(Alphanumeric) as char)
-            .collect(); // Fix this at some point?
+        let code: String = (0..8).map(|_| thread_rng().sample(Alphanumeric) as char).collect(); // Fix this at some point?
         let code = code.to_uppercase();
         let ts_plus_5_minutes = (Utc::now() + Duration::minutes(5)).timestamp();
         dynamodb
             .put_item()
             .table_name(env::var("TABLE").unwrap())
             .item("PK", AttributeValue::S(format!("USER#{}", self.id)))
-            .item(
-                "SK",
-                AttributeValue::S(format!("AUTHSESSION#{}", session_id)),
-            )
-            .item(
-                "GSI1PK",
-                AttributeValue::S(format!("AUTHSESSION#{}", session_id)),
-            )
-            .item(
-                "GSI1SK",
-                AttributeValue::S(format!("AUTHSESSION#{}", session_id)),
-            )
+            .item("SK", AttributeValue::S(format!("AUTHSESSION#{}", session_id)))
+            .item("GSI1PK", AttributeValue::S(format!("AUTHSESSION#{}", session_id)))
+            .item("GSI1SK", AttributeValue::S(format!("AUTHSESSION#{}", session_id)))
             .item("code", AttributeValue::S(format!("{}", code)))
             .item("expiry", AttributeValue::S(ts_plus_5_minutes.to_string()))
             .send()
@@ -92,10 +79,7 @@ pub async fn login(dynamodb: &aws_sdk_dynamodb::Client, email: &str) -> Response
     let user = User::from_email(dynamodb, &email).await;
     println!("User record found by email: {:?}", user);
     match user {
-        None => Response::builder()
-            .status(400)
-            .body("user not found".into())
-            .unwrap(),
+        None => Response::builder().status(400).body("user not found".into()).unwrap(),
         Some(user) => {
             // TODO: Create AUTH_SESSION in db
             let auth_session_id = user.create_auth_session(dynamodb).await;
@@ -113,10 +97,7 @@ pub async fn authenticate(
 ) -> Response<Body> {
     let user = User::from_email(dynamodb, email).await;
     match user {
-        None => Response::builder()
-            .status(400)
-            .body("user not found".into())
-            .expect(""),
+        None => Response::builder().status(400).body("user not found".into()).expect(""),
         Some(user) => {
             // Get AUTH_SESSION from db
             // Validate code from request

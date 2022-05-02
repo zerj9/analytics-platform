@@ -43,12 +43,7 @@ async fn handler(
 ) -> Result<Response<Body>, Error> {
     let request_query_string_parameters = event.query_string_parameters();
     let query_parameters = QueryParameters {
-        query_type: event
-            .query_string_parameters()
-            .first("type")
-            .unwrap()
-            .parse()
-            .unwrap(),
+        query_type: event.query_string_parameters().first("type").unwrap().parse().unwrap(),
         email: request_query_string_parameters.first("email"),
         auth_session_id: request_query_string_parameters.first("auth_session_id"),
         code: request_query_string_parameters.first("code"),
