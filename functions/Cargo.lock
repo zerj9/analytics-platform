@@ -44,10 +44,13 @@ version = "0.1.0"
 dependencies = [
  "aws-config",
  "aws-sdk-dynamodb",
+ "chrono",
  "lambda_http",
+ "rand",
  "serde",
- "serde_dynamo",
+ "serde_json",
  "tokio",
+ "uuid",
 ]
 
 [[package]]
@@ -1193,20 +1196,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "serde_dynamo"
-version = "3.0.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5bda41c3562196340a65f1eab47a5a43fa7ec5427cf0110ce5b791fca5e83955"
-dependencies = [
- "aws-sdk-dynamodb",
- "serde",
-]
-
-[[package]]
 name = "serde_json"
-version = "1.0.79"
+version = "1.0.80"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8e8d9fa5c3b304765ce1fd9c4c8a3de2c8db365a5b91be52f186efc675681d95"
+checksum = "f972498cf015f7c0746cac89ebe1d6ef10c293b94175a243a2d9442c163d9944"
 dependencies = [
  "itoa",
  "ryu",
@@ -1466,6 +1459,15 @@ name = "urlencoding"
 version = "2.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "68b90931029ab9b034b300b797048cf23723400aa757e8a2bfb9d748102f9821"
+
+[[package]]
+name = "uuid"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8cfcd319456c4d6ea10087ed423473267e1a071f3bc0aa89f80d60997843c6f0"
+dependencies = [
+ "getrandom",
+]
 
 [[package]]
 name = "want"

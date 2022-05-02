@@ -1,16 +1,15 @@
-use aws_sdk_dynamodb;
+use aws_sdk_dynamodb::model::AttributeValue;
+use chrono::{Duration, Utc};
 use lambda_http::{Body, IntoResponse, Response};
-use serde::{Deserialize, Serialize};
+use rand::distributions::Alphanumeric;
+use rand::{thread_rng, Rng};
+use serde_json::json;
 use std::env;
-
-#[derive(Debug, Serialize, Deserialize)]
-struct UserRecord {
-    #[serde(rename = "PK")]
-    email: String,
-}
+use uuid::Uuid;
 
 #[derive(Debug)]
 struct User {
+    id: String,
     email: String,
 }
 
@@ -55,51 +54,53 @@ impl User {
             _ => None,
         }
     }
-}
 
-impl User {
-    async fn from_email(dynamodb: &aws_sdk_dynamodb::Client, email: &str) -> Option<User> {
+    async fn create_auth_session(&self, dynamodb: &aws_sdk_dynamodb::Client) -> Result<String, ()> {
+        println!("Creating auth session for {}", self.email);
+        let session_id = Uuid::new_v4();
+        let code: String = (0..8)
+            .map(|_| thread_rng().sample(Alphanumeric) as char)
+            .collect(); // Fix this at some point?
+        let code = code.to_uppercase();
+        let ts_plus_5_minutes = (Utc::now() + Duration::minutes(5)).timestamp();
         dynamodb
-            .get_item()
+            .put_item()
             .table_name(env::var("TABLE").unwrap())
-            .key(
-                "PK",
-                aws_sdk_dynamodb::model::AttributeValue::S(String::from(format!(
-                    "EMAIL#{}",
-                    email
-                ))),
-            )
-            .key(
+            .item("PK", AttributeValue::S(format!("USER#{}", self.id)))
+            .item(
                 "SK",
-                aws_sdk_dynamodb::model::AttributeValue::S(String::from(format!(
-                    "EMAIL#{}",
-                    email
-                ))),
+                AttributeValue::S(format!("AUTHSESSION#{}", session_id)),
             )
+            .item(
+                "GSI1PK",
+                AttributeValue::S(format!("AUTHSESSION#{}", session_id)),
+            )
+            .item(
+                "GSI1SK",
+                AttributeValue::S(format!("AUTHSESSION#{}", session_id)),
+            )
+            .item("code", AttributeValue::S(format!("{}", code)))
+            .item("expiry", AttributeValue::S(ts_plus_5_minutes.to_string()))
             .send()
             .await
-            .expect("DB Call Failed")
-            .item
-            .and_then(|user_item| {
-                serde_dynamo::from_item(user_item)
-                    .expect("dynamodb to UserRecord conversion failed")
-            })
-            .and_then(|user_record: UserRecord| Some(User::from(user_record)))
+            .expect("Failed to create session");
+        Ok(session_id.to_string())
     }
 }
 
 pub async fn login(dynamodb: &aws_sdk_dynamodb::Client, email: &str) -> Response<Body> {
     let user = User::from_email(dynamodb, &email).await;
+    println!("User record found by email: {:?}", user);
     match user {
         None => Response::builder()
             .status(400)
             .body("user not found".into())
-            .expect(""),
+            .unwrap(),
         Some(user) => {
-            println!("{:?}", user.email);
             // TODO: Create AUTH_SESSION in db
+            let auth_session_id = user.create_auth_session(dynamodb).await;
             // TODO: Send email with code
-            format!("found user").into_response()
+            json!({ "auth_session_id": auth_session_id.unwrap() }).into_response()
         }
     }
 }
