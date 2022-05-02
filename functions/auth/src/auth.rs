@@ -14,10 +14,45 @@ struct User {
     email: String,
 }
 
-impl From<UserRecord> for User {
-    fn from(record: UserRecord) -> Self {
-        Self {
-            email: record.email.strip_prefix("EMAIL#").unwrap().to_string(),
+impl User {
+    async fn from_email(dynamodb: &aws_sdk_dynamodb::Client, email: &str) -> Option<User> {
+        let resp = dynamodb
+            .query()
+            .table_name(env::var("TABLE").unwrap())
+            .index_name("GSI1")
+            .key_condition_expression("GSI1PK = :email and GSI1SK = :email")
+            .expression_attribute_values(":email", AttributeValue::S(format!("EMAIL#{}", email)))
+            .expression_attribute_values(":U", AttributeValue::S("USER#".into()))
+            .filter_expression("begins_with(PK, :U) and begins_with(SK, :U)")
+            .send()
+            .await
+            .expect("Query failed: Get user by email");
+
+        match resp.count {
+            1 => {
+                let item = &resp
+                    .items
+                    .expect("User item could not be accessed in response")[0];
+                Some(User {
+                    id: item
+                        .get("PK")
+                        .expect("PK attribute not found in User item")
+                        .as_s()
+                        .unwrap()
+                        .strip_prefix("USER#")
+                        .expect("Failed to parse PK: USER# attribute")
+                        .into(),
+                    email: item
+                        .get("GSI1PK")
+                        .expect("GSI1PK attribute not found in User item")
+                        .as_s()
+                        .unwrap()
+                        .strip_prefix("EMAIL#")
+                        .expect("Failed to parse GSI1PK: EMAIL# attribute")
+                        .into(),
+                })
+            }
+            _ => None,
         }
     }
 }
