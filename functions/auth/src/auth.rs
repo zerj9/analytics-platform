@@ -67,7 +67,7 @@ impl User {
             .item("GSI1PK", AttributeValue::S(format!("AUTHSESSION#{}", session_id)))
             .item("GSI1SK", AttributeValue::S(format!("AUTHSESSION#{}", session_id)))
             .item("code", AttributeValue::S(format!("{}", code)))
-            .item("expiry", AttributeValue::S(ts_plus_5_minutes.to_string()))
+            .item("expiry", AttributeValue::N(ts_plus_5_minutes.to_string()))
             .send()
             .await
             .expect("Failed to create session");
