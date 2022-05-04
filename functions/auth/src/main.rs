@@ -33,7 +33,6 @@ impl FromStr for QueryType {
 struct QueryParameters<'a> {
     query_type: QueryType,
     email: Option<&'a str>,
-    auth_session_id: Option<&'a str>,
     code: Option<&'a str>,
 }
 
@@ -45,26 +44,19 @@ async fn handler(
     let query_parameters = QueryParameters {
         query_type: event.query_string_parameters().first("type").unwrap().parse().unwrap(),
         email: request_query_string_parameters.first("email"),
-        auth_session_id: request_query_string_parameters.first("auth_session_id"),
         code: request_query_string_parameters.first("code"),
     };
 
     match query_parameters {
-        QueryParameters {
-            query_type: QueryType::Login,
-            email: Some(email),
-            auth_session_id: None,
-            code: None,
-        } => {
+        QueryParameters { query_type: QueryType::Login, email: Some(email), code: None } => {
             println!("Login request for: {}", email);
             Ok(auth::login(&client, query_parameters.email.unwrap()).await)
         }
         QueryParameters {
             query_type: QueryType::Authenticate,
             email: Some(email),
-            auth_session_id: Some(auth_session_id),
             code: Some(code),
-        } => Ok(auth::authenticate(&client, email, auth_session_id, code).await),
+        } => Ok(auth::authenticate(&client, email, code).await),
         _ => Ok(Response::builder()
             .status(400)
             .body("bad request".into())

@@ -84,6 +84,7 @@ pub async fn login(dynamodb: &aws_sdk_dynamodb::Client, email: &str) -> Response
             // TODO: Create AUTH_SESSION in db
             let auth_session_id = user.create_auth_session(dynamodb).await;
             // TODO: Send email with code
+            // TODO: return auth_session_id even if no user exists
             json!({ "auth_session_id": auth_session_id.unwrap() }).into_response()
         }
     }
@@ -92,7 +93,6 @@ pub async fn login(dynamodb: &aws_sdk_dynamodb::Client, email: &str) -> Response
 pub async fn authenticate(
     dynamodb: &aws_sdk_dynamodb::Client,
     email: &str,
-    auth_session_id: &str,
     code: &str,
 ) -> Response<Body> {
     let user = User::from_email(dynamodb, email).await;
@@ -103,11 +103,7 @@ pub async fn authenticate(
             // Validate code from request
             // Create SESSION in db and delete AUTH_SESSION
             println!("{:?}", user.email);
-            format!(
-                "Authenticate request for {} with auth session {} and code {}",
-                email, auth_session_id, code
-            )
-            .into_response()
+            format!("Authenticate request for {} with code {}", email, code).into_response()
         }
     }
 }
