@@ -53,7 +53,8 @@ export class Api extends Construct {
             logRetention: RetentionDays.ONE_WEEK,
             environment: {
                 'RUST_BACKTRACE': '1',
-                'TABLE': props.table.tableName
+                'TABLE': props.table.tableName,
+                'HOSTED_ZONE': props.hosted_zone.zoneName
             }
         })
         props.table.grantReadWriteData(authFunction);
