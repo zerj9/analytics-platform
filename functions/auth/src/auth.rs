@@ -1,9 +1,9 @@
 use aws_sdk_dynamodb::model::AttributeValue;
-use chrono::{Duration, Utc};
+use chrono::{DateTime, Duration, NaiveDateTime, Utc};
 use lambda_http::{Body, IntoResponse, Response};
 use rand::distributions::Alphanumeric;
 use rand::{thread_rng, Rng};
-// use serde_json::json;
+use serde_json::json;
 use std::collections::hash_map::HashMap;
 use std::env;
 use uuid::Uuid;
@@ -14,16 +14,24 @@ struct User {
     email: String,
 }
 
+struct Session {
+    id: String,
+    user_id: String,
+    csrf_token: String,
+    expiry: DateTime<Utc>,
+}
+
 #[derive(Debug)]
 struct AuthSession {
     id: String,
     user_id: String,
     code: String,
-    expiry: i64,
+    expiry: DateTime<Utc>,
 }
 
 impl AuthSession {
-    async fn delete(&self, dynamodb: &aws_sdk_dynamodb::Client) -> Result<(), ()> {
+    // TODO: Move logic to create_session function. Use db transaction in that function
+    async fn delete(&self, dynamodb: &aws_sdk_dynamodb::Client) -> () {
         dynamodb
             .delete_item()
             .table_name(env::var("TABLE").unwrap())
@@ -33,12 +41,20 @@ impl AuthSession {
             .await
             .expect("AuthSession::delete failed");
         // TODO: throw error if record doesn't exist
-        Ok(())
     }
 }
 
 impl From<HashMap<String, AttributeValue>> for AuthSession {
     fn from(item: HashMap<String, AttributeValue>) -> Self {
+        let naive_expiry = NaiveDateTime::from_timestamp(
+            item.get("expiry")
+                .expect("expiry attribute not found in AUTHSESSION item")
+                .as_n()
+                .unwrap()
+                .parse()
+                .unwrap(),
+            0,
+        );
         AuthSession {
             id: item
                 .get("SK")
@@ -62,14 +78,7 @@ impl From<HashMap<String, AttributeValue>> for AuthSession {
                 .as_s()
                 .unwrap()
                 .into(),
-            expiry: item
-                .get("expiry")
-                .expect("expiry attribute not found in AUTHSESSION item")
-                .as_n()
-                .unwrap()
-                .parse::<i64>()
-                .expect("Failed to parse expiry string to i64")
-                .into(),
+            expiry: DateTime::from_utc(naive_expiry, Utc),
         }
     }
 }
@@ -135,6 +144,36 @@ impl User {
         Ok(session_id.to_string())
     }
 
+    async fn create_session(
+        &self,
+        dynamodb: &aws_sdk_dynamodb::Client,
+        session_seconds: Option<i64>,
+    ) -> Session {
+        println!("Creating session for {}", self.email);
+        let session_seconds = session_seconds.unwrap_or(28800);
+        let session_id = Uuid::new_v4();
+        let csrf_token = Uuid::new_v4();
+        let session_expiry = Utc::now() + Duration::seconds(session_seconds);
+        dynamodb
+            .put_item()
+            .table_name(env::var("TABLE").unwrap())
+            .item("PK", AttributeValue::S(format!("USER#{}", self.id)))
+            .item("SK", AttributeValue::S(format!("SESSION#{}", session_id)))
+            .item("GSI1PK", AttributeValue::S(format!("SESSION#{}", session_id)))
+            .item("GSI1SK", AttributeValue::S(format!("SESSION#{}", session_id)))
+            .item("csrf_token", AttributeValue::S(format!("{}", csrf_token)))
+            .item("expiry", AttributeValue::N(session_expiry.timestamp().to_string()))
+            .send()
+            .await
+            .expect("Failed to create session");
+        Session {
+            id: session_id.to_string(),
+            user_id: self.id.to_owned(),
+            csrf_token: csrf_token.to_string(),
+            expiry: session_expiry,
+        }
+    }
+
     async fn get_auth_sessions(
         &self,
         dynamodb: &aws_sdk_dynamodb::Client,
@@ -191,19 +230,28 @@ pub async fn authenticate(
         None => format!("Authentication failed").into_response(),
         Some(user) => {
             let auth_sessions_response = user.get_auth_sessions(dynamodb).await;
-
-            println!("auth_sessions: {:?}", auth_sessions_response);
-
             match auth_sessions_response {
                 Some(auth_sessions) => {
                     let matched_auth_session =
                         auth_sessions.iter().find(|&auth_session| auth_session.code == code);
                     match matched_auth_session {
                         Some(auth_session) => {
-                            auth_session.delete(dynamodb).await.expect("AUTHSESSION delete failed");
-                            // Create SESSION in db
-                            format!("Authenticate request for {} with code {}", email, code)
-                                .into_response()
+                            // TODO: delete auth session and create session in a db transaction
+                            auth_session.delete(dynamodb).await;
+                            let session = user.create_session(dynamodb, None).await;
+                            Response::builder()
+                                .status(200)
+                                .header(
+                                    "Set-Cookie",
+                                    format!(
+                                        "session_id={}; Domain={}; Secure; HttpOnly; Expires={}",
+                                        session.id,
+                                        env::var("HOSTED_ZONE").unwrap(),
+                                        session.expiry.to_rfc2822()
+                                    ),
+                                )
+                                .body(json!({"csrf_token": session.csrf_token}).to_string().into())
+                                .unwrap()
                         }
                         None => format!("Authentication failed").into_response(),
                     }
