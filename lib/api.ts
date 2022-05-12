@@ -1,5 +1,7 @@
 import { ApiMapping, DomainName, HttpApi, HttpMethod } from '@aws-cdk/aws-apigatewayv2-alpha';
+import { HttpLambdaAuthorizer, HttpLambdaResponseType } from '@aws-cdk/aws-apigatewayv2-authorizers-alpha';
 import { HttpLambdaIntegration } from '@aws-cdk/aws-apigatewayv2-integrations-alpha';
+import { Duration } from 'aws-cdk-lib';
 import { Architecture, Code, Function, Runtime } from "aws-cdk-lib/aws-lambda";
 import { RetentionDays } from "aws-cdk-lib/aws-logs";
 import { Construct } from "constructs";
@@ -66,6 +68,28 @@ export class Api extends Construct {
         })
         // AUTH
 
+        // AUTHORIZER
+        const lambdaAuthorizerFunction = new Function(this, 'LambdaAuthorizerFunction', {
+            description: 'Lambda Authorizer function',
+            runtime: Runtime.PROVIDED_AL2,
+            architecture: Architecture.ARM_64,
+            handler: 'not.required',
+            code: Code.fromAsset('functions/target/lambda/authorizer/bootstrap.zip'),
+            logRetention: RetentionDays.ONE_WEEK,
+            environment: {
+                'RUST_BACKTRACE': '1',
+                'TABLE': props.table.tableName,
+                'HOSTED_ZONE': props.hosted_zone.zoneName
+            }
+        })
+        props.table.grantReadWriteData(lambdaAuthorizerFunction);
+        const authorizer = new HttpLambdaAuthorizer('LambdaAuthorizer', lambdaAuthorizerFunction, {
+            responseTypes: [HttpLambdaResponseType.SIMPLE],
+            identitySource: [],
+            resultsCacheTtl: Duration.seconds(0)
+        });
+        // AUTHORIZER
+
         // PROFILE
         const profileFunction = new Function(this, 'ProfileFunction', {
             description: 'Profile endpoint for use by API Gateway',
@@ -84,7 +108,8 @@ export class Api extends Construct {
         api.addRoutes({
             path: '/profile',
             methods: [HttpMethod.GET],
-            integration: new HttpLambdaIntegration('ProfileIntegration', profileFunction)
+            integration: new HttpLambdaIntegration('ProfileIntegration', profileFunction),
+            authorizer: authorizer
         })
         // PROFILE
     }
