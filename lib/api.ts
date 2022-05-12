@@ -44,6 +44,7 @@ export class Api extends Construct {
             domainName: domainName
         })
 
+        // AUTH
         const authFunction = new Function(this, 'AuthFunction', {
             description: 'Auth endpoint for use by API Gateway',
             runtime: Runtime.PROVIDED_AL2,
@@ -63,5 +64,28 @@ export class Api extends Construct {
             methods: [HttpMethod.POST],
             integration: new HttpLambdaIntegration('AuthIntegration', authFunction)
         })
+        // AUTH
+
+        // PROFILE
+        const profileFunction = new Function(this, 'ProfileFunction', {
+            description: 'Profile endpoint for use by API Gateway',
+            runtime: Runtime.PROVIDED_AL2,
+            architecture: Architecture.ARM_64,
+            handler: 'not.required',
+            code: Code.fromAsset('functions/target/lambda/profile/bootstrap.zip'),
+            logRetention: RetentionDays.ONE_WEEK,
+            environment: {
+                'RUST_BACKTRACE': '1',
+                'TABLE': props.table.tableName,
+                'HOSTED_ZONE': props.hosted_zone.zoneName
+            }
+        })
+        props.table.grantReadWriteData(profileFunction);
+        api.addRoutes({
+            path: '/profile',
+            methods: [HttpMethod.GET],
+            integration: new HttpLambdaIntegration('ProfileIntegration', profileFunction)
+        })
+        // PROFILE
     }
 }
