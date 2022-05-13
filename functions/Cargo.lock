@@ -61,6 +61,7 @@ dependencies = [
  "aws-config",
  "aws-sdk-dynamodb",
  "lambda_runtime",
+ "model",
  "serde_json",
  "tokio",
 ]
