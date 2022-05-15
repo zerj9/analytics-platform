@@ -40,9 +40,9 @@ impl Session {
                         .unwrap(),
                     0,
                 );
-                let expiry_dt: DateTime<Utc> = DateTime::from_utc(naive_expiry, Utc);
+                let expires: DateTime<Utc> = DateTime::from_utc(naive_expiry, Utc);
 
-                if expiry_dt > Utc::now() {
+                if Utc::now() > expires {
                     None
                 } else {
                     Some(Session {
