@@ -64,29 +64,19 @@ impl User {
             .await
             .expect("Query failed: Get user by id");
 
-        match resp.count {
-            1 => {
-                let item = &resp.items.expect("User item could not be accessed in response")[0];
-                Some(User {
-                    id: item
-                        .get("PK")
-                        .expect("PK attribute not found in User item")
-                        .as_s()
-                        .unwrap()
-                        .strip_prefix("USER#")
-                        .expect("Failed to parse PK: USER# attribute")
-                        .into(),
-                    email: item
-                        .get("GSI1PK")
-                        .expect("GSI1PK attribute not found in User item")
-                        .as_s()
-                        .unwrap()
-                        .strip_prefix("EMAIL#")
-                        .expect("Failed to parse GSI1PK: EMAIL# attribute")
-                        .into(),
-                })
-            }
-            _ => None,
+        match resp.item {
+            None => None,
+            Some(item) => Some(User {
+                id: item.get("PK").unwrap().as_s().unwrap().strip_prefix("USER#").unwrap().into(),
+                email: item
+                    .get("GSI1PK")
+                    .unwrap()
+                    .as_s()
+                    .unwrap()
+                    .strip_prefix("EMAIL#")
+                    .unwrap()
+                    .into(),
+            }),
         }
     }
 
