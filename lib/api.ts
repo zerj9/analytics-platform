@@ -12,19 +12,19 @@ import { ApiGatewayv2DomainProperties } from 'aws-cdk-lib/aws-route53-targets';
 
 export interface ApiProps {
     table: ITable;
-    hosted_zone: IHostedZone
+    hostedZone: IHostedZone
 }
 
 export class Api extends Construct {
     constructor(scope: Construct, id: string, props: ApiProps) {
         super(scope, id)
 
-        const apiUrl = `api.${props.hosted_zone.zoneName}`
+        const apiUrl = `api.${props.hostedZone.zoneName}`
 
         const api = new HttpApi(this, 'AnalyticsPlatformApi')
         const certificate = new Certificate(this, 'Certificate', {
             domainName: apiUrl,
-            validation: CertificateValidation.fromDns(props.hosted_zone)
+            validation: CertificateValidation.fromDns(props.hostedZone)
         })
 
         const domainName = new DomainName(this, 'ApiDomainName', {
@@ -33,7 +33,7 @@ export class Api extends Construct {
         })
 
         new ARecord(this, 'CustomDomainAliasRecord', {
-            zone: props.hosted_zone,
+            zone: props.hostedZone,
             recordName: apiUrl,
             target: RecordTarget.fromAlias(new ApiGatewayv2DomainProperties(
                 domainName.regionalDomainName,
@@ -57,7 +57,7 @@ export class Api extends Construct {
             environment: {
                 'RUST_BACKTRACE': '1',
                 'TABLE': props.table.tableName,
-                'HOSTED_ZONE': props.hosted_zone.zoneName
+                'HOSTED_ZONE': props.hostedZone.zoneName
             }
         })
         props.table.grantReadWriteData(authFunction);
@@ -79,7 +79,7 @@ export class Api extends Construct {
             environment: {
                 'RUST_BACKTRACE': '1',
                 'TABLE': props.table.tableName,
-                'HOSTED_ZONE': props.hosted_zone.zoneName
+                'HOSTEDZONE': props.hostedZone.zoneName
             }
         })
         props.table.grantReadWriteData(lambdaAuthorizerFunction);
@@ -101,7 +101,7 @@ export class Api extends Construct {
             environment: {
                 'RUST_BACKTRACE': '1',
                 'TABLE': props.table.tableName,
-                'HOSTED_ZONE': props.hosted_zone.zoneName
+                'HOSTEDZONE': props.hostedZone.zoneName
             }
         })
         props.table.grantReadWriteData(profileFunction);
