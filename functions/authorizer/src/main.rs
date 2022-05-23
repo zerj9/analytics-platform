@@ -1,7 +1,7 @@
 use lambda_runtime::{service_fn, Error, LambdaEvent};
 use serde_json::{json, Value};
 
-use model;
+use model::{Session, User};
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
@@ -14,7 +14,7 @@ async fn main() -> Result<(), Error> {
 
 async fn handler(
     event: LambdaEvent<Value>,
-    client: &aws_sdk_dynamodb::Client,
+    dynamodb: &aws_sdk_dynamodb::Client,
 ) -> Result<Value, Error> {
     let (event, _context) = event.into_parts();
 
@@ -30,10 +30,21 @@ async fn handler(
             None => Ok(json!({ "isAuthorized": false })),
             Some(cookie) => {
                 let session_id = cookie.as_str().unwrap().strip_prefix("session_id=").unwrap();
-                let session = model::Session::from_id(client, session_id).await;
-                // let user = model::User::from_id; IMPLEMENT from_id
-                println!("session: {:?}", session.unwrap());
-                Ok(json!({ "isAuthorized": true }))
+                let session = Session::from_id(dynamodb, session_id).await;
+
+                if let Some(sess) = session {
+                    let user = User::from_id(dynamodb, &sess.user_id).await.unwrap();
+                    println!("session: {:?} for user {:?}", sess, user);
+                    Ok(json!({
+                       "isAuthorized": true,
+                       "context": {
+                           "user_id": user.id,
+                           "user_email": user.email
+                       }
+                    }))
+                } else {
+                    Ok(json!({ "isAuthorized": false }))
+                }
             }
         }
     } else {
