@@ -1,6 +1,5 @@
 use aws_sdk_dynamodb;
 use lambda_http::{Body, IntoResponse, Response};
-use serde_json::json;
 use std::env;
 
 use model;
@@ -60,7 +59,7 @@ pub async fn authenticate(
                                         session.expiry.to_rfc2822()
                                     ),
                                 )
-                                .body(json!({"csrf_token": session.csrf_token}).to_string().into())
+                                .body("authenticated".into())
                                 .unwrap()
                         }
                         None => format!("Authentication failed").into_response(),
