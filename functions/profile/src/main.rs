@@ -1,5 +1,7 @@
 use aws_sdk_dynamodb;
-use lambda_http::{service_fn, Body, Error, IntoResponse, Request, Response};
+use lambda_http::request::RequestContext::ApiGatewayV2;
+use lambda_http::{service_fn, Error, Request, RequestExt};
+use serde_json::{json, Value};
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
@@ -10,9 +12,16 @@ async fn main() -> Result<(), Error> {
     Ok(())
 }
 
-async fn handler(
-    _event: Request,
-    _client: &aws_sdk_dynamodb::Client,
-) -> Result<Response<Body>, Error> {
-    Ok(format!("profile endpoint called").into_response())
+async fn handler(request: Request, _client: &aws_sdk_dynamodb::Client) -> Result<Value, Error> {
+    match request.request_context() {
+        ApiGatewayV2(req) => {
+            let authorizer = req.authorizer.unwrap().lambda;
+
+            Ok(json!({
+                 "user_id": authorizer.get("user_id").unwrap(),
+                 "email": authorizer.get("user_email").unwrap()
+            }))
+        }
+        _ => Ok(json!({ "": "" })),
+    }
 }
