@@ -12,6 +12,7 @@ use crate::session::Session;
 pub struct User {
     pub id: String,
     pub email: String,
+    pub user_type: String,
 }
 
 impl User {
@@ -48,6 +49,12 @@ impl User {
                         .strip_prefix("EMAIL#")
                         .expect("Failed to parse GSI1PK: EMAIL# attribute")
                         .into(),
+                    user_type: item
+                        .get("user_type")
+                        .expect("user_type attribute not found in User item")
+                        .as_s()
+                        .unwrap()
+                        .into(),
                 })
             }
             _ => None,
@@ -76,6 +83,7 @@ impl User {
                     .strip_prefix("EMAIL#")
                     .unwrap()
                     .into(),
+                user_type: item.get("user_type").unwrap().as_s().unwrap().into(),
             }),
         }
     }
