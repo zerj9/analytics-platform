@@ -1,14 +1,39 @@
-# Welcome to your CDK TypeScript project
+# Analytics Platform
 
-This is a blank project for CDK development with TypeScript.
+## Deployment
 
-The `cdk.json` file tells the CDK Toolkit how to execute your app.
+### Diagram:
 
-## Useful commands
+- To do
 
-* `npm run build`   compile typescript to js
-* `npm run watch`   watch for changes and compile
-* `npm run test`    perform the jest unit tests
-* `cdk deploy`      deploy this stack to your default AWS account/region
-* `cdk diff`        compare deployed stack with current state
-* `cdk synth`       emits the synthesized CloudFormation template
+### Steps:
+
+- To do
+
+## Data Model
+
+| Entity       | PK          | SK               | GSI1PK        | GSI1SK        | GSI2PK | GSI2SK |
+| ------------ | ----------- | ---------------- | ------------- | ------------- | ------ | ------ |
+| User         | USER#{id}   | USER#{id}        | EMAIL#{email} | EMAIL#{email} |        |        |
+| Auth Session | USER#{id}   | AUTHSESSION#{id} | USER#{id}     | USER#{id}     |        |        |
+| Session      | USER#{id}   | SESSION#{id}     | SESSION#{id}  | SESSION#{id}  |        |        |
+| Team         | TEAM#{name} | TEAM#{name}      |               |               |        |        |
+| Team Member  | TEAM#{name} | USER#{id}        | USER#{id}     | TEAM#{name}   |        |        |
+
+## Extra attributes:
+
+### User:
+
+- first_name
+- last_name
+- user_type: [SuperAdmin, User]
+
+### Auth Session:
+
+- code: generated code used to authenticate (passwordless)
+- expiry: timestamp (DynamoDB TTL)
+
+### Session:
+
+- csrf_token
+- expiry: timestamp (DynamoDB TTL)
