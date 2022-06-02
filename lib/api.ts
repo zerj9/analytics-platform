@@ -132,5 +132,27 @@ export class Api extends Construct {
             authorizer: authorizer
         })
         // CREATE TEAM
+
+        // ADD TEAM USER
+        const addTeamUserFunction = new Function(this, 'addTeamUserFunction', {
+            description: 'Team POST endpoint to add user for use by API Gateway',
+            runtime: Runtime.PROVIDED_AL2,
+            architecture: Architecture.ARM_64,
+            handler: 'not.required',
+            code: Code.fromAsset('functions/target/lambda/team_add/bootstrap.zip'),
+            logRetention: RetentionDays.ONE_WEEK,
+            environment: {
+                'RUST_BACKTRACE': '1',
+                'TABLE': props.table.tableName,
+            }
+        })
+        props.table.grantReadWriteData(addTeamUserFunction);
+        api.addRoutes({
+            path: '/team/{team_name}',
+            methods: [HttpMethod.POST],
+            integration: new HttpLambdaIntegration('AddTeamUserIntegration', addTeamUserFunction),
+            authorizer: authorizer
+        })
+        // ADD TEAM USER
     }
 }
