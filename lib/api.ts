@@ -79,7 +79,6 @@ export class Api extends Construct {
             environment: {
                 'RUST_BACKTRACE': '1',
                 'TABLE': props.table.tableName,
-                'HOSTEDZONE': props.hostedZone.zoneName
             }
         })
         props.table.grantReadWriteData(lambdaAuthorizerFunction);
@@ -101,7 +100,6 @@ export class Api extends Construct {
             environment: {
                 'RUST_BACKTRACE': '1',
                 'TABLE': props.table.tableName,
-                'HOSTEDZONE': props.hostedZone.zoneName
             }
         })
         props.table.grantReadWriteData(profileFunction);
@@ -112,5 +110,27 @@ export class Api extends Construct {
             authorizer: authorizer
         })
         // PROFILE
+
+        // CREATE TEAM
+        const createTeamFunction = new Function(this, 'CreateTeamFunction', {
+            description: 'Team POST endpoint for use by API Gateway',
+            runtime: Runtime.PROVIDED_AL2,
+            architecture: Architecture.ARM_64,
+            handler: 'not.required',
+            code: Code.fromAsset('functions/target/lambda/team_create/bootstrap.zip'),
+            logRetention: RetentionDays.ONE_WEEK,
+            environment: {
+                'RUST_BACKTRACE': '1',
+                'TABLE': props.table.tableName,
+            }
+        })
+        props.table.grantReadWriteData(createTeamFunction);
+        api.addRoutes({
+            path: '/team',
+            methods: [HttpMethod.POST],
+            integration: new HttpLambdaIntegration('CreateTeamIntegration', createTeamFunction),
+            authorizer: authorizer
+        })
+        // CREATE TEAM
     }
 }

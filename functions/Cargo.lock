@@ -1292,6 +1292,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "team_create"
+version = "0.1.0"
+dependencies = [
+ "aws-config",
+ "aws-sdk-dynamodb",
+ "chrono",
+ "lambda_http",
+ "model",
+ "rand",
+ "serde",
+ "serde_json",
+ "tokio",
+ "uuid",
+]
+
+[[package]]
 name = "thiserror"
 version = "1.0.30"
 source = "registry+https://github.com/rust-lang/crates.io-index"
