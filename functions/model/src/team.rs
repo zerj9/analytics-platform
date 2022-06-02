@@ -1,3 +1,6 @@
+use aws_sdk_dynamodb::model::AttributeValue;
+use std::env;
+
 #[derive(Debug)]
 pub struct Team {
     pub name: String,
@@ -6,7 +9,7 @@ pub struct Team {
 }
 
 impl Team {
-    pub async from_name(dynamodb: &aws_sdk_dynamodb::Client, name: &str) -> Option<Team> {
+    pub async fn from_name(dynamodb: &aws_sdk_dynamodb::Client, name: &str) -> Option<Team> {
         let resp = dynamodb
             .get_item()
             .table_name(env::var("TABLE").unwrap())
@@ -20,14 +23,8 @@ impl Team {
             None => None,
             Some(item) => Some(Team {
                 name: item.get("PK").unwrap().as_s().unwrap().strip_prefix("TEAM#").unwrap().into(),
-                name: item
-                    .get("GSI1PK")
-                    .unwrap()
-                    .as_s()
-                    .unwrap()
-                    .strip_prefix("EMAIL#")
-                    .unwrap()
-                    .into(),
+                admins: None,
+                users: None,
             }),
         }
     }
