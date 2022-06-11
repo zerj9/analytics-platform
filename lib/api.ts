@@ -3,6 +3,7 @@ import { HttpLambdaAuthorizer, HttpLambdaResponseType } from '@aws-cdk/aws-apiga
 import { HttpLambdaIntegration } from '@aws-cdk/aws-apigatewayv2-integrations-alpha';
 import { Duration } from 'aws-cdk-lib';
 import { Architecture, Code, Function, Runtime } from "aws-cdk-lib/aws-lambda";
+import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
 import { RetentionDays } from "aws-cdk-lib/aws-logs";
 import { Construct } from "constructs";
 import { Certificate, CertificateValidation } from 'aws-cdk-lib/aws-certificatemanager';
@@ -90,17 +91,10 @@ export class Api extends Construct {
         // AUTHORIZER
 
         // PROFILE
-        const profileFunction = new Function(this, 'ProfileFunction', {
-            description: 'Profile endpoint for use by API Gateway',
-            runtime: Runtime.PROVIDED_AL2,
+        const profileFunction = new NodejsFunction(this, 'ProfileFunction', {
+            runtime: Runtime.NODEJS_16_X,
             architecture: Architecture.ARM_64,
-            handler: 'not.required',
-            code: Code.fromAsset('functions/target/lambda/profile/bootstrap.zip'),
-            logRetention: RetentionDays.ONE_WEEK,
-            environment: {
-                'RUST_BACKTRACE': '1',
-                'TABLE': props.table.tableName,
-            }
+            entry: "functions/profile.ts",
         })
         props.table.grantReadWriteData(profileFunction);
         api.addRoutes({
