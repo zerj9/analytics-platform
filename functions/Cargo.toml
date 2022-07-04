@@ -1,2 +1,0 @@
-[workspace]
-members = ["model", "authorizer", "auth", "profile", "team_add", "team_create"]

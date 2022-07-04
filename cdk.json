@@ -1,5 +1,5 @@
 {
-  "app": "npm run build-functions && npx ts-node --prefer-ts-exts bin/analytics-platform.ts",
+  "app": "npx ts-node --prefer-ts-exts bin/analytics-platform.ts",
   "watch": {
     "include": ["**"],
     "exclude": [

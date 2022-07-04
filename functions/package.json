@@ -2,15 +2,16 @@
   "name": "analytics-platform-functions",
   "version": "0.1.0",
   "scripts": {
-    "build-functions": "cd functions && cargo lambda build --release --arm64 --output-format zip",
     "build": "tsc",
     "watch": "tsc -w",
-    "test": "npm run build-functions && jest",
+    "test": "jest",
     "cdk": "cdk"
   },
   "devDependencies": {
+    "@types/cookie": "^0.5.1",
     "@types/jest": "^26.0.10",
     "@types/node": "10.17.27",
+    "@types/uuid": "^8.3.4",
     "aws-cdk": "2.27.0",
     "jest": "^26.4.2",
     "ts-jest": "^26.2.0",
@@ -21,10 +22,13 @@
     "@aws-cdk/aws-apigatewayv2-alpha": "^2.22.0-alpha.0",
     "@aws-cdk/aws-apigatewayv2-authorizers-alpha": "^2.22.0-alpha.0",
     "@aws-cdk/aws-apigatewayv2-integrations-alpha": "^2.22.0-alpha.0",
+    "@aws-sdk/client-dynamodb": "^3.105.0",
     "@aws-sdk/types": "^3.78.0",
+    "@types/aws-lambda": "^8.10.100",
     "aws-cdk-lib": "2.27.0",
-    "aws-sdk": "^2.1152.0",
     "constructs": "^10.0.0",
-    "source-map-support": "^0.5.16"
+    "cookie": "^0.5.0",
+    "source-map-support": "^0.5.16",
+    "uuid": "^8.3.2"
   }
 }
